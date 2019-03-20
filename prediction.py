@@ -1,21 +1,21 @@
 import pandas as pd
 import math
-from sklearn import linear_model
-from sklearn.model_selection import cross_val_score, ShuffleSplit
 import csv
 import random
 import numpy as np
 from numpy import newaxis
 import pickle
+from bracketeer import build_bracket 
 
 NAME = "march_madness_2019_model_1"
 team_elos = pickle.load(open("team_elos.pickle", "rb"))
 team_stats = pickle.load(open("team_stats.pickle", "rb"))
+base_elo = 1600
 team_seeds = {}
 final_data = []
 folder = 'data'
-prediction_year = 2018
-prediction_range =[2014, 2015, 2016, 2017, 2018]
+prediction_year = 2019
+prediction_range =[2019]
 
 def init_data():
 	for i in range(prediction_range[0], prediction_year+1):
@@ -43,11 +43,11 @@ def predict_winner(team_1, team_2, model, season, stat_fields):
 	team_1_features = []
 	team_2_features = []
 
-	team_1_features.append(get_elo(season, team_1) + get_seed_bonus(get_seed(season, team_1)))
+	team_1_features.append(get_elo(season, team_1) + get_seed_bonus(team_1, team_2, season))
 	for stat in stat_fields:
 		team_1_features.append(get_stats(season, team_1, stat))
 
-	team_2_features.append(get_elo(season, team_2) + get_seed_bonus(get_seed(season, team_2)))
+	team_2_features.append(get_elo(season, team_2) + get_seed_bonus(team_2, team_1, season))
 	for stat in stat_fields:
 		team_2_features.append(get_stats(season, team_2, stat))
 
@@ -57,48 +57,89 @@ def predict_winner(team_1, team_2, model, season, stat_fields):
 
 def get_seed(team, season):
 	try:
-		return team_seeds[season][team]
+		return int(team_seeds[season][team][1:])
 	except:
-		return 'a16'
+		return 16
 
-def get_seed_bonus(seed):
-	seed = seed[1:]
-	if seed == 1:
-		bonus = 185
-	elif seed == 2:
-		bonus = 67
-	elif seed == 3:
-		bonus = 50
-	elif seed == 4:
-		bonus = 22
-	elif seed == 5:
-		bonus = 15
-	elif seed == 6:
-		bonus = 8
-	elif seed == 7:
-		bonus = 6
-	elif seed == 8:
-		bonus = 14
-	elif seed == 9 or seed == 10:
-		bonus = 1
-	elif seed == 11:
-		bonus = 4
-	else:
+def get_elo_difference(team_1, team_2, season):
+	try:
+		if get_elo(season, team_1) > get_elo(season, team_2):
+			return get_elo(season, team_1) - get_elo(season, team_2) + 50
+		elif get_elo(season, team_2) > get_elo(season, team_1):
+			return get_elo(season, team_2) - get_elo(season, team_1) + 50
+	except:
+		return 0
+
+
+def get_seed_bonus(team_1, team_2, season):
+	seed1 = get_seed(team_1, season)
+	seed2 = get_seed(team_2, season)
+
+	bonus = 100 * random.random()
+
+	if seed1 == 1 and seed2 == 2:
 		bonus = 0
+	elif seed1 == 10 and seed2 == 7:
+		if random.random() < 0.382:
+			bonus += get_elo_difference(team_1, team_2, season)
+	elif seed1 == 11 and seed2 == 6:
+		if random.random() < 0.375:
+			bonus += get_elo_difference(team_1, team_2, season)
+	elif seed1 == 12 and seed2 == 5:
+		if random.random() < 0.346:
+			bonus += get_elo_difference(team_1, team_2, season)
+	elif seed1 == 13 and seed2 == 4:
+		if random.random() < 0.201:
+			bonus += get_elo_difference(team_1, team_2, season)
+	elif seed1 == 14 and seed2 == 3:
+		if random.random() < 0.154:
+			bonus+= get_elo_difference(team_1, team_2, season)
+	elif seed1 == 15 and seed2 == 2:
+		if random.random() < 0.059:
+			bonus += get_elo_difference(team_1, team_2, season)
 
-	return bonus 
+	if seed1 == 6 and seed2 == 3:
+		if random.random() < 0.201:
+			bonus += get_elo_difference(team_1, team_2, season)
+	elif seed1 == 7 and seed2 == 2:
+		if random.random() < 0.185:
+			bonus += get_elo_difference(team_1, team_2, season)
+	elif seed1 == 10 and seed2 == 2:
+		if random.random() < 0.133:
+			bonus += get_elo_difference(team_1, team_2, season)
+	elif seed1 == 11 and seed2 == 3:
+		if random.random() < 0.125:
+			bonus += get_elo_difference(team_1, team_2, season)
+	elif seed1 == 8 and seed2 == 1:
+		if random.random() < 0.0962:
+			bonus+= get_elo_difference(team_1, team_2, season)
+	elif seed1 == 12 and seed2 == 4:
+		if random.random() < 0.0888:
+			bonus += get_elo_difference(team_1, team_2, season)
+	elif seed1 == 9 and seed2 == 1:
+		if random.random() < 0.0444:
+			bonus += get_elo_difference(team_1, team_2, season)
+	elif seed1 == 13 and seed2 == 5:
+		if random.random() < 0.0222:
+			bonus += get_elo_difference(team_1, team_2, season)
+	elif seed1 == 14 and seed2 == 6:
+		if random.random() < 0.0148:
+			bonus += get_elo_difference(team_1, team_2, season)
+	elif seed1 == 15 and seed2 == 7:
+		if random.random() < 0.0074:
+			bonus += get_elo_difference(team_1, team_2, season)
+
+	if seed1 is not 16:
+		if seed2 == 1 and seed1 is not 1:
+			if random.random() < .05:
+				bonus = get_elo_difference(team_1, team_2, season)
+
+	return bonus
 
 def prepare_data(features):
 	features = np.array(features)
 	features = features[newaxis, :]
 	return features
-
-def build_team_dict():
-	team_ids = pd.read_csv(folder + '/Teams.csv')
-	team_id_map = {}
-	for index, row in team_ids.iterrows():
-		team_id_map[row['TeamID']] = row['TeamName']
-	return team_id_map
 
 def get_teams(team_list, year):
 	for i in range(len(team_list)):
@@ -108,59 +149,39 @@ def get_teams(team_list, year):
 					label = str(year) + '_' + str(team_list[i]) + '_' + str(team_list[j])
 					final_data.append([label, prediction[0]])
 
-if __name__ == "__main__":
-	init_data()
-	stat_fields = ['score', 'fga', 'fgp', 'fga3', '3pp', 'ftp', 'or', 'dr', 'ast', 'to', 'stl', 'blk', 'pf']
+init_data()
+stat_fields = ['score', 'fga', 'fgp', 'fga3', '3pp', 'ftp', 'or', 'dr', 'ast', 'to', 'stl', 'blk', 'pf']
 
-	model = pickle.load(open("model.sav", "rb"))
+model = pickle.load(open("models/modelv2.sav", "rb"))
 
-	print("Getting teams")
-	print("Predicting matchups")
+print("Getting teams")
+print("Predicting matchups")
 
-	seeds = pd.read_csv(folder + '/NCAATourneySeeds.csv')
-	tourney_teams = []
-	for year in prediction_range:
-		for index, row in seeds.iterrows():
-			if row['Season'] == year:
-				team_seeds[year][row['TeamID']] = row['Seed']
-				tourney_teams.append(row['TeamID'])
-		tourney_teams.sort()
+seeds = pd.read_csv(folder + '/NCAATourneySeeds.csv')
+tourney_teams = []
+for year in prediction_range:
+	for index, row in seeds.iterrows():
+		if row['Season'] == year:
+			team_seeds[year][row['TeamID']] = row['Seed']
+			tourney_teams.append(row['TeamID'])
+	tourney_teams.sort()
 
-		get_teams(tourney_teams, year)
-		tourney_teams.clear()
+	get_teams(tourney_teams, year)
+	tourney_teams.clear()
 
-	print(f"Writing {len(final_data)} results")
-	with open(folder + f'/submission_1.csv', 'w', newline='') as f:
-		writer = csv.writer(f)
-		writer.writerow(['ID', 'Pred'])
-		writer.writerows(final_data)
+prediction_path = 'predictions/submission_1.csv'
 
-	print("Outputting readable results")
-	team_id_map = build_team_dict()
-	readable = []
-	less_readable = []
-	for pred in final_data:
-		parts = pred[0].split('_')
-		less_readable.append(
-			[team_id_map[int(parts[1])], team_id_map[int(parts[2])], pred[1]])
-		if pred[1] > 0.5:
-			winning = int(parts[1])
-			losing = int(parts[2])
-			probability = pred[1]
-		else:
-			winning = int(parts[2])
-			losing = int(parts[1])
-			probability = 1 - pred[1]
+print(f"Writing {len(final_data)} results")
+with open(prediction_path, 'w', newline='') as f:
+	writer = csv.writer(f)
+	writer.writerow(['ID', 'Pred'])
+	writer.writerows(final_data)
 
-		readable.append(
-			[
-				f"{team_id_map[winning]} beats {team_id_map[losing]}: {probability}"
-			]
-		)
-
-	with open(folder + '/readable-predictions.csv', 'w') as f:
-		writer = csv.writer(f)
-		writer.writerows(readable)
-	with open(folder + '/less-readable-predictions.csv', 'w') as f:
-		writer = csv.writer(f)
-		writer.writerows(less_readable)
+m = build_bracket(
+	outputPath='output.png',
+	teamsPath='Data/Teams.csv',
+	seedsPath='Data/NCAATourneySeeds.csv',
+	submissionPath=prediction_path,
+	slotsPath='Data/NCAATourneySlots.csv',
+	year=prediction_year
+	)

@@ -11,7 +11,7 @@ folder = 'data'
 base_elo = 1600
 team_elos = {}
 team_stats = {}
-prediction_year = 2018
+prediction_year = 2019
 
 def init_data():
 	for i in range(2003, prediction_year+1):
@@ -27,11 +27,11 @@ def calc_elo(win_team, lose_team, season):
 	odds = 1 / (1 + math.pow(10, exp))
 
 	if winner_rank < 2100:
-		k = 64
-	elif winner_rank >= 2100 and winner_rank < 2400:
-		k = 48
-	else:
 		k = 32
+	elif winner_rank >= 2100 and winner_rank < 2400:
+		k = 24
+	else:
+		k = 16
 
 	new_winner_rank = round(winner_rank + (k*(1 - odds)))
 	new_rank_diff = new_winner_rank - winner_rank
@@ -45,7 +45,7 @@ def get_elo(season, team):
 	except:
 		try:
 			team_elo = team_elos[season-1][team]
-			team_elo = (.75*team_elo)+(.25*base_elo)
+			team_elo = (.65*team_elo)+(.35*base_elo)
 			team_elos[season][team] = team_elo
 			return team_elos[season][team]
 		except:
@@ -71,6 +71,22 @@ def update_stats(season, team, fields):
 			team_stats[season][team][key].pop()
 
 		team_stats[season][team][key].append(value)
+
+def get_location_win(loc):
+	if loc == 'H':
+		return 2
+	elif loc == 'A':
+		return 1
+	else:
+		return 0
+
+def get_location_lose(loc):
+	if loc == 'H':
+		return 1
+	elif loc == 'A':
+		return 2
+	else:
+		return 0
 
 def build_season_data(all_data):
 	print("Building season data.")
